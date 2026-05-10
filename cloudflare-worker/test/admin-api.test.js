@@ -67,7 +67,7 @@ class FakeD1 {
   }
 }
 
-function env() {
+function env(overrides = {}) {
   return {
     ADMIN_TOKEN: 'admin-password',
     DB: new FakeD1({
@@ -87,7 +87,7 @@ function env() {
         },
       ],
       providerWrites: [],
-      servers: [{ id: '8564', name: '主服务器', provider: 'heyunidc', enabled: 1 }],
+      servers: overrides.servers || [{ id: '8564', name: '主服务器', provider: 'heyunidc', enabled: 1 }],
       status: [{ id: '8564', name: '203.0.113.10', ip: '203.0.113.10', state: 'healthy', last_status_value: 'on' }],
     }),
   };
@@ -113,6 +113,24 @@ test('管理概览返回配置但不泄露服务商密钥和 pushplus token', as
   assert.equal(data.settings.pushplus_token, '已配置');
   assert.equal(data.providers[0].api_password, undefined);
   assert.doesNotMatch(text, /provider-secret|pushplus-secret|203\.0\.113\.10/);
+});
+
+test('管理概览优先返回启用服务器，避免表单默认选中旧禁用记录', async () => {
+  const res = await handleRequest(
+    new Request('https://worker.example/api/admin/overview', {
+      headers: { authorization: 'Bearer admin-password' },
+    }),
+    env({
+      servers: [
+        { id: '4075', name: '旧服务器', provider: 'heyunidc', enabled: 0 },
+        { id: '8564', name: '主服务器', provider: 'heyunidc', enabled: 1 },
+      ],
+    }),
+  );
+  const data = await res.json();
+
+  assert.equal(data.servers[0].id, '8564');
+  assert.equal(data.servers[0].enabled, true);
 });
 
 test('公共状态接口不返回服务器 IP', async () => {

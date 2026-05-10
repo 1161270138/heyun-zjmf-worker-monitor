@@ -37,6 +37,16 @@ function publicServer(server) {
   return { ...rest, name: serverDisplayName(server) };
 }
 
+function adminServers(servers, status) {
+  const activeIds = new Set(status.map((server) => String(server.id)));
+  return servers.map(publicServer).sort((a, b) => {
+    const activeDiff = Number(activeIds.has(String(b.id))) - Number(activeIds.has(String(a.id)));
+    if (activeDiff) return activeDiff;
+    const enabledDiff = Number(b.enabled) - Number(a.enabled);
+    return enabledDiff || String(a.id).localeCompare(String(b.id), 'zh-CN', { numeric: true });
+  });
+}
+
 export async function handleRequest(request, env) {
   const url = new URL(request.url);
   const repo = new D1Repository(env.DB);
@@ -62,11 +72,12 @@ export async function handleRequest(request, env) {
 
   if (url.pathname === '/api/admin/overview' && request.method === 'GET') {
     const settings = await repo.getSettings();
+    const status = (await repo.listStatus()).map(publicServer);
     return json({
       settings: { ...settings, pushplus_token: settings.pushplus_token ? '已配置' : '' },
       providers: await repo.listProviders(),
-      servers: (await repo.listServers()).map(publicServer),
-      status: (await repo.listStatus()).map(publicServer),
+      servers: adminServers(await repo.listServers(), status),
+      status,
     });
   }
 
