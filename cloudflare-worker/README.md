@@ -51,10 +51,10 @@ Cloudflare Worker 不能执行本机 ICMP `ping`，所以当前 Worker 版只支
 | `CLOUDFLARE_API_TOKEN` | 第 2 步获取的 Token | 必填 |
 | `ZJMF_ADMIN_TOKEN` | 任意强密码字符串 | 必填 |
 | `CLOUDFLARE_ACCOUNT_ID` | 你的 Cloudflare Account ID | 推荐 |
-| `ZJMF_API_ACCOUNT` | 魔方财务登录邮箱或手机号 | 可选，填后自动初始化 |
-| `ZJMF_API_PASSWORD` | 魔方财务 API 密钥 | 可选，填后自动初始化 |
-| `ZJMF_SERVER_ID` | 魔方财务产品 ID | 可选，填后自动初始化 |
-| `ZJMF_SERVER_IP` | 服务器 IP | 可选 |
+| `ZJMF_API_ACCOUNT` | 魔方财务登录邮箱或手机号 | 必填 |
+| `ZJMF_API_PASSWORD` | 魔方财务 API 密钥 | 必填 |
+| `ZJMF_SERVER_ID` | 魔方财务产品 ID | 必填 |
+| `ZJMF_SERVER_IP` | 服务器 IP | 推荐 |
 | `PUSHPLUS_TOKEN` | pushplus 用户 token | 可选 |
 
 ### 第 4 步 — 运行 GitHub Actions
@@ -67,7 +67,8 @@ Cloudflare Worker 不能执行本机 ICMP `ping`，所以当前 Worker 版只支
 - 执行 D1 迁移
 - 注入 `ADMIN_TOKEN` 为 Worker Secret
 - 部署 Worker（状态页 UI + API + 定时监控任务）
-- 如果填写了可选 Secrets，会自动添加服务商、服务器和 pushplus 通知
+- 自动添加服务商、服务器监控配置
+- 如果填写了 `PUSHPLUS_TOKEN`，会自动添加 pushplus 通知
 
 ### 第 5 步 — 访问你的状态页
 

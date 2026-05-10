@@ -26,10 +26,9 @@ const apiAccount = process.env.ZJMF_API_ACCOUNT || '';
 const apiPassword = process.env.ZJMF_API_PASSWORD || '';
 const serverId = process.env.ZJMF_SERVER_ID || '';
 
-if (!apiAccount || !apiPassword || !serverId) {
-  console.log('Skip seed: ZJMF_API_ACCOUNT, ZJMF_API_PASSWORD, or ZJMF_SERVER_ID is not configured.');
-  process.exit(0);
-}
+required('ZJMF_API_ACCOUNT');
+required('ZJMF_API_PASSWORD');
+required('ZJMF_SERVER_ID');
 
 const provider = process.env.ZJMF_PROVIDER || 'heyunidc';
 const serverIp = process.env.ZJMF_SERVER_IP || '';

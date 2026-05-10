@@ -40,6 +40,9 @@ jobs:
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || (echo "Missing CLOUDFLARE_API_TOKEN" && exit 1)
           test -n "$ADMIN_TOKEN" || (echo "Missing ZJMF_ADMIN_TOKEN or UPTIMER_ADMIN_TOKEN" && exit 1)
+          test -n "$ZJMF_API_ACCOUNT" || (echo "Missing ZJMF_API_ACCOUNT" && exit 1)
+          test -n "$ZJMF_API_PASSWORD" || (echo "Missing ZJMF_API_PASSWORD" && exit 1)
+          test -n "$ZJMF_SERVER_ID" || (echo "Missing ZJMF_SERVER_ID" && exit 1)
 
       - name: Run tests
         run: npm test
