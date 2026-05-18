@@ -5,7 +5,7 @@ setlocal EnableExtensions
 cd /d "%~dp0"
 set "UPSTREAM_REPO=loqwe/heyun-zjmf-worker-monitor"
 set "GITHUB_REPO_URL=https://github.com/%UPSTREAM_REPO%"
-set "REAL_FILE=%CD%\step1-install.bat"
+set "REAL_FILE=%CD%\步骤1-一键安装.bat"
 set "REAL_URL=%GITHUB_REPO_URL%/releases/download/release-step1-bat-v1/step1-install.bat"
 
 if not exist "%REAL_FILE%" (
