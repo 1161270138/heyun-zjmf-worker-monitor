@@ -513,6 +513,27 @@ test('系统更新检查会读取 GitHub 最新提交并返回更新状态', asy
   assert.match(calls[0].input, /api\.github\.com\/repos\/loqwe\/heyun-zjmf-worker-monitor\/commits\/main/);
 });
 
+test('系统更新检查失败时返回 GitHub API 的具体原因', async () => {
+  const testEnv = env({
+    fetcher: async () => new Response(JSON.stringify({
+      message: 'Not Found',
+      documentation_url: 'https://docs.github.com/rest/commits/commits#get-a-commit',
+    }), { status: 404 }),
+  });
+  const res = await handleRequest(new Request('https://worker.example/api/admin/update/check', {
+    headers: { authorization: 'Bearer admin-password' },
+  }), testEnv);
+  const data = await res.json();
+
+  assert.equal(res.status, 502);
+  assert.equal(data.error, 'GITHUB_CHECK_FAILED');
+  assert.equal(data.status, 404);
+  assert.equal(data.github_message, 'Not Found');
+  assert.equal(data.documentation_url, 'https://docs.github.com/rest/commits/commits#get-a-commit');
+  assert.equal(data.repo, 'loqwe/heyun-zjmf-worker-monitor');
+  assert.equal(data.branch, 'main');
+});
+
 test('系统更新确认会触发 GitHub Actions workflow_dispatch', async () => {
   const calls = [];
   const testEnv = env({

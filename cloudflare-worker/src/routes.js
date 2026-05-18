@@ -96,6 +96,23 @@ function githubHeaders(token) {
   return headers;
 }
 
+async function githubErrorDetail(res) {
+  try {
+    const data = await res.clone().json();
+    return {
+      github_message: String(data?.message || '').slice(0, 500),
+      documentation_url: String(data?.documentation_url || ''),
+    };
+  } catch {
+    try {
+      const text = String(await res.clone().text()).trim();
+      return { github_message: text.slice(0, 500) };
+    } catch {
+      return {};
+    }
+  }
+}
+
 async function githubUpdateConfig(repo, env) {
   const githubRepo = normalizeRepo(await repo.getSetting('github_repo', env.GITHUB_REPOSITORY || env.GITHUB_REPO || ''));
   return {
@@ -251,7 +268,20 @@ export async function handleRequest(request, env) {
     if (!cfg.repo) return json({ ok: true, configured: false, message: '未配置 GitHub 仓库' });
     const latestUrl = `https://api.github.com/repos/${cfg.repo}/commits/${encodeURIComponent(cfg.branch)}`;
     const res = await cfg.fetcher(latestUrl, { headers: githubHeaders(cfg.token) });
-    if (!res.ok) return json({ ok: false, configured: true, error: 'GITHUB_CHECK_FAILED', status: res.status }, 502);
+    if (!res.ok) {
+      const detail = await githubErrorDetail(res);
+      return json({
+        ok: false,
+        configured: true,
+        error: 'GITHUB_CHECK_FAILED',
+        status: res.status,
+        repo: cfg.repo,
+        branch: cfg.branch,
+        workflow: cfg.workflow,
+        actions_url: githubActionsUrl(cfg.repo, cfg.workflow),
+        ...detail,
+      }, 502);
+    }
     const data = await res.json();
     const latestSha = String(data.sha || '').trim();
     const latestDate = String(data.commit?.committer?.date || data.commit?.author?.date || '');

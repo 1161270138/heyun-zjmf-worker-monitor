@@ -46,6 +46,8 @@ test('管理后台页面使用 ZJMF_ADMIN_TOKEN 登录且不嵌入真实密码',
   assert.match(html, /\/api\/admin\/update\/check/);
   assert.match(html, /\/api\/admin\/update\/dispatch/);
   assert.match(html, /GitHub Actions/);
+  assert.match(html, /GitHub 返回/);
+  assert.match(html, /github_message/);
   assert.match(html, /新建通知渠道/);
   assert.match(html, /编辑通知渠道/);
   assert.match(html, /id="notifyRows"/);
