@@ -39,9 +39,9 @@
 <body>
   <main>
     <h1>下载步骤1-一键安装脚本</h1>
-    <p>正在准备下载文件：步骤1-一键安装脚本.bat。若没有自动下载，请点击下面按钮。</p>
+    <p>请点击下面按钮下载文件：步骤1-一键安装脚本.bat。</p>
     <button id="download">立即下载</button>
-    <div id="status" class="status">等待下载...</div>
+    <div id="status" class="status">等待点击...</div>
   </main>
   <script>
     const fileName = '步骤1-一键安装脚本.bat';
@@ -68,9 +68,6 @@
       downloadStep1().catch((error) => {
         document.getElementById('status').textContent = error.message;
       });
-    });
-    window.addEventListener('load', () => {
-      setTimeout(() => document.getElementById('download').click(), 300);
     });
   </script>
 </body>

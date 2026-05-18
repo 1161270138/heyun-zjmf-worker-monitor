@@ -3,7 +3,7 @@
 最简单方式：只下载一个文件并双击：
 
 [点击下载：步骤1-一键安装脚本](https://htmlpreview.github.io/?https://github.com/loqwe/heyun-zjmf-worker-monitor/blob/main/download-step1.html)
-这是下载页，打开后会自动保存为 步骤1-一键安装脚本.bat。
+这是下载页，打开后请点 立即下载，保存为 步骤1-一键安装脚本.bat。
 
 它会先检查 PowerShell、Node.js、npx；缺少 Node.js/npx 时会尝试通过 winget 自动安装 Node.js LTS，找不到任何 PowerShell 时会尝试通过 winget 安装 PowerShell 7，然后自动下载 步骤2-一键部署.bat、部署脚本和配置模板，并在同目录自动创建：
 

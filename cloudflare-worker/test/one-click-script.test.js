@@ -31,7 +31,7 @@ test('文档里的步骤1下载入口使用 HTML 预览下载页', () => {
   assert.match(rootReadme, downloadUrl);
   assert.match(workerReadme, downloadUrl);
   assert.match(usage, downloadUrl);
-  assert.match(rootReadme, /自动保存为 `步骤1-一键安装脚本\.bat`/);
+  assert.match(rootReadme, /点 \*\*立即下载\*\*，会保存为 `步骤1-一键安装脚本\.bat`/);
 });
 
 test('下载页会用浏览器下载属性指定中文文件名', () => {
@@ -40,6 +40,7 @@ test('下载页会用浏览器下载属性指定中文文件名', () => {
   assert.match(page, /const fileName = '步骤1-一键安装脚本\.bat'/);
   assert.match(page, /link\.download = fileName/);
   assert.match(page, /raw\.githubusercontent\.com/);
+  assert.doesNotMatch(page, /window\.addEventListener\('load'/);
 });
 
 test('Release workflow 会发布中文名步骤1安装脚本附件', () => {
