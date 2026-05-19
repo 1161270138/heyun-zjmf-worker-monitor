@@ -19,6 +19,7 @@ one-click.config.jsonc
 Cloudflare API Token
 Cloudflare Account ID
 GitHub 仓库地址
+GitHub 更新令牌（可选，用于管理后台点“确定更新”）
 ZJMF_ADMIN_TOKEN 网站密码（管理后台密码）
 
 这些信息的获取方式：
@@ -38,7 +39,19 @@ Token 只显示一次，请复制保存，部署脚本会要求粘贴。
 复制你 Fork 后仓库的地址，例如：
 https://github.com/你的用户名/heyun-zjmf-worker-monitor
 
-4. 魔方财务 API
+4. GitHub 更新令牌（可选）
+用途：管理后台 系统更新 -> 确定更新 会用它触发你 Fork 仓库的 GitHub Actions。
+获取方式：
+打开 https://github.com/settings/personal-access-tokens/new
+Token name 填 zjmf-monitor-update。
+Resource owner 选择你的 GitHub 账号。
+Repository access 选择 Only select repositories，并选择你 Fork 后的 heyun-zjmf-worker-monitor 仓库。
+Repository permissions 设置 Actions: Read and write、Contents: Read-only。
+点击 Generate token 后复制 github_pat_ 开头的令牌。
+不填写也能部署，但只能检查更新，不能在网页里点“确定更新”。
+注意：GitHub 更新令牌是 github_pat_ 开头，不是 Cloudflare 的 cfut_ Token。
+
+5. 魔方财务 API
 打开 https://www.heyunidc.cn/apimanage 获取登录邮箱或手机号、API 密钥；产品 ID 可在魔方财务产品详情或部署后在管理后台填写。
 
 如果 Token 能访问多个 Cloudflare 账户，脚本只会提示检测结果，不会自动替你选择账号；请手动输入要部署的 Account ID。

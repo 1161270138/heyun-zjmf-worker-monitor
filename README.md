@@ -36,7 +36,7 @@ cloudflare-worker/README.md
    - **Cloudflare Token**：打开 <https://dash.cloudflare.com/profile/api-tokens>，点击 **创建令牌**，在 API 令牌模板里选择 **编辑 Cloudflare Workers**，点击 **使用模板**；再点击 **增加更多帐户**，添加 **D1 / 编辑**；账户资源选择 **包括所有账户**，区域资源选择 **包括所有区域**；最后点击 **继续以显示摘要**，再点击 **创建令牌**，复制生成的 Token。
    - **Cloudflare Account ID**：进入 Cloudflare 账户主页，在右侧三个点里点击 **复制账户 ID**；如果脚本检测到账户 ID，也可以直接复制脚本显示的值。
    - **Fork 后的仓库地址**：打开你 Fork 后的 GitHub 仓库，复制浏览器地址，例如 `https://github.com/你的用户名/heyun-zjmf-worker-monitor`。
-   - **GitHub 更新令牌**：可选；如果要在管理后台点击 **系统更新 → 确定更新** 自动触发 Actions，需要准备 GitHub Fine-grained Token，并授予当前 Fork 仓库 **Actions: Read and write**、**Contents: Read-only** 权限。
+   - **GitHub 更新令牌**：可选；如果要在管理后台点击 **系统更新 → 确定更新** 自动触发 Actions，需要准备 GitHub Fine-grained Token。打开 <https://github.com/settings/personal-access-tokens/new>，`Token name` 填 `zjmf-monitor-update`，`Resource owner` 选择你的 GitHub 账号，`Repository access` 选择 **Only select repositories** 并选中你 Fork 后的仓库；`Repository permissions` 设置 **Actions: Read and write**、**Contents: Read-only**，最后点击 **Generate token**，复制 `github_pat_` 开头的令牌。
    - **魔方财务 API**：打开 <https://www.heyunidc.cn/apimanage>，复制魔方财务登录邮箱或手机号、API 密钥；产品 ID 可部署后在管理后台添加监控项时填写。
 4. 双击下载得到的 `步骤1-一键安装脚本.bat`，按提示粘贴以上信息。
    如果你是在 PowerShell 当前目录里手动运行，请先 `cd` 到文件所在目录，再输入 `.\步骤1-一键安装脚本.bat`；不要直接粘贴完整路径。若文件名变成了 `步骤1-一键安装脚本 (4).bat`，先删掉旧文件再重新下载。
@@ -67,6 +67,8 @@ cloudflare-worker/README.md
    | `ZJMF_API_PASSWORD` | 魔方财务 API 密钥 | 可选，用于首次自动初始化 |
    | `ZJMF_SERVER_ID` | 魔方财务产品 ID | 可选，用于首次自动初始化 |
    | `WEB_UPDATE_GITHUB_TOKEN` | GitHub Fine-grained Token，用于管理后台点“确定更新”触发 Actions | 可选，不填只能检查更新 |
+
+   `WEB_UPDATE_GITHUB_TOKEN` 获取方式：打开 <https://github.com/settings/personal-access-tokens/new>，创建 Fine-grained Token，仓库只选择你的 Fork 仓库，权限只给 **Actions: Read and write** 和 **Contents: Read-only**。它是 `github_pat_` 开头的 GitHub 令牌，不是 `cfut_` 开头的 Cloudflare Token。
 
 5. 进入 **Actions → Deploy to Cloudflare → Run workflow**。
 6. 工作流成功后，在日志最后查看真实 Worker 地址，并访问：

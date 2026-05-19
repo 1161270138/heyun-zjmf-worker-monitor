@@ -97,6 +97,12 @@ function Show-InteractiveGuide {
     Write-Host "   可复制脚本检测显示的账户 ID；也可在 Cloudflare 账户主页右侧三个点里点击 复制账户 ID。"
     Write-Host "3. GitHub 仓库地址："
     Write-Host "   复制你 Fork 后仓库的地址，例如 https://github.com/你的用户名/heyun-zjmf-worker-monitor。"
+    Write-Host "4. GitHub 更新令牌（可选，用于网页点 确定更新）："
+    Write-Host "   打开 https://github.com/settings/personal-access-tokens/new"
+    Write-Host "   Token name 填 zjmf-monitor-update；Resource owner 选择你的 GitHub 账号。"
+    Write-Host "   Repository access 选择 Only select repositories，并选择你 Fork 后的仓库。"
+    Write-Host "   Repository permissions 设置 Actions: Read and write、Contents: Read-only。"
+    Write-Host "   点击 Generate token 后复制 github_pat_ 开头的令牌；不填则只能检查更新，不能网页触发更新。"
 }
 function Convert-GitHubRepoInput([string]$Value) {
     $text = $Value.Trim().TrimEnd("/")
@@ -168,6 +174,8 @@ function Get-DefaultConfigText {
   "adminToken": "请填写强密码",
 
   // 可选：网页“系统更新 -> 确定更新”触发 GitHub Actions 用的 Fine-grained PAT
+  // 获取：https://github.com/settings/personal-access-tokens/new
+  // 仓库只选你的 Fork；权限给 Actions: Read and write、Contents: Read-only
   "webUpdateGitHubToken": "",
 
   // 魔方财务配置；可留空，部署后到 /admin 初始化向导填写

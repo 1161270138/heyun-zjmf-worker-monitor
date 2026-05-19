@@ -11,6 +11,8 @@
   "adminToken": "请填写强密码",
 
   // 可选：网页“系统更新 -> 确定更新”触发 GitHub Actions 用的 Fine-grained PAT
+  // 获取：https://github.com/settings/personal-access-tokens/new
+  // 仓库只选你的 Fork；权限给 Actions: Read and write、Contents: Read-only
   "webUpdateGitHubToken": "",
 
   // 魔方财务配置；可留空，部署后到 /admin 初始化向导填写
