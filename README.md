@@ -22,11 +22,11 @@
 5. 脚本会自动检查依赖、下载部署文件、生成配置并启动部署。
 6. 完成后按日志里的真实地址访问状态页和管理后台。
 
-### 方式二：EdgeOne Pages 部署按钮
+### 方式二：EdgeOne Pages 复用现有仓库部署按钮
 
-[![Deploy to EdgeOne](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/pages/new?repository-url=https%3A%2F%2Fgithub.com%2Floqwe%2Fheyun-zjmf-worker-monitor%2Ftree%2Fmain%2Fedgeone-pages&project-name=zjmf-monitor-edgeone&install-command=npm+install&build-command=npm+test&output-directory=.&env=ADMIN_TOKEN%2CZJMF_KV&env-description=ADMIN_TOKEN+%E6%98%AF%E7%AE%A1%E7%90%86%E5%90%8E%E5%8F%B0%E5%88%9D%E5%A7%8B%E5%AF%86%E7%A0%81%EF%BC%9BZJMF_KV+%E6%98%AF+EdgeOne+KV+%E7%BB%91%E5%AE%9A%E5%8F%98%E9%87%8F%E5%90%8D%E3%80%82%E9%83%A8%E7%BD%B2%E5%90%8E%E8%BF%98%E9%9C%80%E8%A6%81%E5%9C%A8+EdgeOne+Pages+%E9%A1%B9%E7%9B%AE%E4%B8%AD%E7%BB%91%E5%AE%9A+KV%E3%80%82&env-link=https%3A%2F%2Fpages.edgeone.ai%2Fzh%2Fdocument%2Fpages-kv-integration)
+[![使用现有仓库部署到 EdgeOne](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/pages/new?repository-url=https%3A%2F%2Fgithub.com%2Floqwe%2Fheyun-zjmf-worker-monitor%2Ftree%2Fmain%2Fedgeone-pages&project-name=zjmf-monitor-edgeone&install-command=npm+install&build-command=npm+test&output-directory=.&env=ADMIN_TOKEN%2CZJMF_KV&env-description=这个按钮会复用现有的+GitHub+仓库+loqwe%2Fheyun-zjmf-worker-monitor+里的+edgeone-pages+目录；不是新建一个新的 GitHub 仓库。ADMIN_TOKEN+是管理后台初始密码；ZJMF_KV+是+EdgeOne+KV+绑定变量名。部署后还需要在+EdgeOne+Pages+项目中绑定+KV。&env-link=https%3A%2F%2Fpages.edgeone.ai%2Fzh%2Fdocument%2Fpages-kv-integration)
 
-说明：EdgeOne 版使用 KV 保存配置和事件，定时监控由外部定时器调用 `/api/admin/run`。部署按钮会创建 Pages 项目并填入基础构建参数；首次部署后仍需在 EdgeOne 控制台绑定 KV 到变量名 `ZJMF_KV`。
+说明：EdgeOne 版使用 KV 保存配置和事件，定时监控由外部定时器调用 `/api/admin/run`。这个按钮只是把现有 GitHub 仓库的 `edgeone-pages` 目录接入 EdgeOne Pages；首次部署后仍需在 EdgeOne 控制台绑定 KV 到变量名 `ZJMF_KV`。
 
 详细说明见 `edgeone-pages/README.md`。
 
