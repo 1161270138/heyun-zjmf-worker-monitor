@@ -26,6 +26,9 @@ function tokenOf(settings) {
 }
 
 function urlFor(settings) {
+  if (settings.webhook_type === 'pushplus') {
+    return settings.webhook_url || 'https://www.pushplus.plus/send';
+  }
   if (settings.webhook_type === 'bark') {
     return settings.webhook_url || (tokenOf(settings) ? `https://api.day.app/${encodeURIComponent(tokenOf(settings))}` : '');
   }

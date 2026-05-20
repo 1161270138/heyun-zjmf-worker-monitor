@@ -116,6 +116,7 @@ test('管理初始化弹窗支持滚动显示完整内容', async () => {
   assert.match(html, /name="notify_token"/);
   assert.match(html, /name="notify_target"/);
   assert.match(html, /function syncNotifyFields/);
+  assert.doesNotMatch(html, /showUrl=type==='pushplus'/);
   assert.match(html, /probeTcpField is-hidden/);
   assert.match(html, /#selectedHostPanel\{padding:12px 14px\}/);
   assert.match(html, /#selectedHostPanel \.grid2\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\);gap:10px\}/);

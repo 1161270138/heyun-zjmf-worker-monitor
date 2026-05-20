@@ -49,6 +49,22 @@ test('pushplus webhook 发送 token/title/content/template', async () => {
   });
 });
 
+test('pushplus 未填写 Webhook URL 时自动使用固定地址', async () => {
+  const calls = [];
+  const fetcher = async (url, init) => {
+    calls.push({ url: String(url), init });
+    return new Response('{"code":200}', { status: 200 });
+  };
+  const notifier = new Notifier({
+    webhook_type: 'pushplus',
+    notify_token: 'token-1',
+  }, fetcher);
+
+  const result = await notifier.send('告警', '内容', 'critical');
+  assert.equal(result.ok, true);
+  assert.equal(calls[0].url, 'https://www.pushplus.plus/send');
+});
+
 test('更多通知渠道生成对应平台载荷', async () => {
   const cases = [
     {

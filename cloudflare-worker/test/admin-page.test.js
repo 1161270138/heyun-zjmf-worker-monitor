@@ -166,4 +166,5 @@ test('管理后台页面使用 ZJMF_ADMIN_TOKEN 登录且不嵌入真实密码',
   assert.match(html, /name="notify_token"/);
   assert.match(html, /name="notify_target"/);
   assert.match(html, /function syncNotifyFields/);
+  assert.doesNotMatch(html, /showUrl=type==='pushplus'/);
 });
