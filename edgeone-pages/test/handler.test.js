@@ -105,8 +105,12 @@ test('管理初始化弹窗支持滚动显示完整内容', async () => {
   assert.match(html, /#setupWizardModal,#notifyModal,#editModal\{align-items:start;overflow:auto\}/);
   assert.match(html, /#setupWizardModal \.setup-modal\{width:min\(1180px,calc\(100vw - 48px\)\);scrollbar-gutter:stable\}/);
   assert.match(html, /name="visible_on_status" type="hidden" value="false"/);
+  const editModalStart = html.indexOf('id="editModal"');
+  const editModal = html.slice(editModalStart, html.indexOf('</section>', editModalStart));
+  assert.doesNotMatch(editModal, /daily_reboot_limit/);
   assert.match(html, /function fieldControl/);
   assert.match(html, /\[type="checkbox"\]/);
+  assert.match(html, /填 IP 或完整网址；非默认端口才加 :端口/);
   assert.match(html, /HTTP\(S\) \+ API（EdgeOne 选这个）/);
   assert.match(html, /HTTP\(S\) \+ TCP \+ API（Cloudflare Worker 选这个）<\/option>/);
   assert.match(html, /统计窗口/);
@@ -297,6 +301,45 @@ test('保存服务器时自动使用已有服务商', async () => {
   const data = await overview.json();
 
   assert.equal(data.servers[0].provider, 'heyunidc_demo_account');
+});
+
+test('EdgeOne 编辑服务器时不传重启次数上限会保留旧值', async () => {
+  const kv = new MemoryKV();
+  const env = { ADMIN_TOKEN: 'admin', ZJMF_KV: kv };
+  const headers = {
+    authorization: 'Bearer admin',
+    'content-type': 'application/json; charset=utf-8',
+  };
+  await handleEdgeOneRequest(new Request('https://edgeone.example/api/admin/setup', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      providers: [{
+        name: 'heyunidc',
+        display_name: '核云',
+        api_base_url: 'https://api.example/v1',
+        api_account: 'demo@example.com',
+        api_password: 'secret',
+      }],
+      servers: [{ id: '1001', name: '主服务器', provider: 'heyunidc', daily_reboot_limit: 9 }],
+      settings: { default_daily_reboot_limit: 3 },
+      notification: { enabled: false },
+    }),
+  }), env);
+
+  const save = await handleEdgeOneRequest(new Request('https://edgeone.example/api/admin/servers', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ id: '1001', name: '主服务器', provider: 'heyunidc' }),
+  }), env);
+  assert.equal(save.status, 200);
+
+  const overview = await handleEdgeOneRequest(new Request('https://edgeone.example/api/admin/overview', {
+    headers: { authorization: 'Bearer admin' },
+  }), env);
+  const data = await overview.json();
+
+  assert.equal(data.servers[0].daily_reboot_limit, 9);
 });
 
 test('EdgeOne 公共状态接口隐藏不在状态页显示的服务器', async () => {

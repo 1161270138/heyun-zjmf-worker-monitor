@@ -153,3 +153,25 @@ test('EdgeOne 默认按每小时统计重启次数', async () => {
 
   assert.equal(repo.recentRebootQuery.since, 1778382000 - 3600);
 });
+
+test('EdgeOne 重启上限由管理面板设置决定', async () => {
+  const repo = new FakeRepo({
+    settings: { ...settings, default_daily_reboot_limit: 1, reboot_limit_window: 'hour' },
+    providers: { heyun: { name: 'heyun', api_base_url: 'https://api.example/v1', jwt_token: 'jwt', jwt_expire_at: 9999999999 } },
+    servers: [{ id: '4075', name: 'API', provider: 'heyun', check_method: 'api_only', daily_reboot_limit: 99 }],
+    runtimes: { 4075: { ...suspectRuntime(), last_reboot_time: 0 } },
+    recentReboots: { 4075: 1 },
+  });
+  const calls = [];
+  const fetcher = async (url) => {
+    calls.push(String(url));
+    if (String(url).includes('/module/status')) return new Response('off');
+    if (String(url).includes('/power_on')) return new Response(JSON.stringify({ msg: '成功' }));
+    return new Response(JSON.stringify({ jwt: 'jwt' }));
+  };
+
+  await runMonitorOnce({ repo, fetcher, now: 1778382000 });
+
+  assert.equal(repo.recentRebootQuery.since, 1778382000 - 3600);
+  assert.equal(calls.some((url) => url.includes('/power_on')), false);
+});

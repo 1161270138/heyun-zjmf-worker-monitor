@@ -94,7 +94,7 @@ test('管理后台页面使用 ZJMF_ADMIN_TOKEN 登录且不嵌入真实密码',
   assert.match(html, /\[type="checkbox"\]/);
   assert.match(html, /魔方财务 API/);
   assert.match(html, /HTTP\(S\)/);
-  assert.match(html, /填一个能访问的域名\+端口\/网页地址/);
+  assert.match(html, /填 IP 或完整网址；非默认端口才加 :端口/);
   assert.match(html, /TCP 端口/);
   assert.match(html, /HTTP 方法/);
   assert.match(html, /期望状态码/);
@@ -127,6 +127,9 @@ test('管理后台页面使用 ZJMF_ADMIN_TOKEN 登录且不嵌入真实密码',
   assert.match(html, /autoFillHttpUrl\(\$\('serverForm'\)\)/);
   assert.match(html, /name="api_password" type="text"/);
   assert.match(html, /id="editModal"/);
+  const editModalStart = html.indexOf('id="editModal"');
+  const editModal = html.slice(editModalStart, html.indexOf('</section>', editModalStart));
+  assert.doesNotMatch(editModal, /daily_reboot_limit/);
   assert.match(html, /#editModal \.setup-modal/);
   assert.match(html, /max-height:calc\(100vh - 48px\)/);
   assert.match(html, /overflow-y:auto/);

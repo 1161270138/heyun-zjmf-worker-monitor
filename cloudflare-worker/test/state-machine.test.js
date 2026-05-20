@@ -109,6 +109,19 @@ test('同 24 小时达到上限后阻止重启，下一天重新允许', () => {
   assert.equal(shouldReboot(runtime, server, settings, 1400, '2026-05-11'), true);
 });
 
+test('重启上限由管理面板设置决定，不受单个服务器配置影响', () => {
+  const runtime = createRuntime({
+    state: 'down',
+    last_reboot_time: 1000,
+    reboot_count_today: 1,
+    reboot_date: '2026-05-10',
+  });
+  const settings = { reboot_cooldown: 300, default_daily_reboot_limit: 1 };
+  const server = { daily_reboot_limit: 99 };
+
+  assert.equal(shouldReboot(runtime, server, settings, 1400, '2026-05-10'), false);
+});
+
 test('24 小时窗口优先使用事件日志统计的最近重启次数', () => {
   const runtime = createRuntime({
     state: 'down',

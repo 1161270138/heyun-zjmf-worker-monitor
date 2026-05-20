@@ -451,11 +451,15 @@ export async function handleRequest(request, env) {
         ? existing.provider
         : providers[0]?.name || '';
     if (!provider) return json({ error: 'PROVIDER_NOT_FOUND' }, 400);
+    const settings = await repo.getSettings();
     const nextServer = {
       ...body,
       provider,
       ip: Object.hasOwn(body, 'ip') ? body.ip : existing?.ip || '',
       check_method: body.check_method || 'http_then_api',
+      daily_reboot_limit: Object.hasOwn(body, 'daily_reboot_limit')
+        ? Number(body.daily_reboot_limit || 0)
+        : Number(existing?.daily_reboot_limit ?? settings.default_daily_reboot_limit ?? 3),
       visible_on_status: Object.hasOwn(body, 'visible_on_status')
         ? boolValueWithDefault(body.visible_on_status, true)
         : boolValueWithDefault(existing?.visible_on_status, true),

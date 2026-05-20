@@ -75,7 +75,7 @@ function buildTransitionNotice(server, oldState, nextRuntime, now, label, level,
   const name = displayServerName(server);
   const method = METHOD_TEXT[server.check_method || 'api_only'] || server.check_method || 'api_only';
   const stateText = `${STATE_TEXT[oldState] || oldState} -> ${STATE_TEXT[nextRuntime.state] || nextRuntime.state}`;
-  const limit = server.daily_reboot_limit || settings.default_daily_reboot_limit;
+  const limit = settings.default_daily_reboot_limit;
   const rebootText = limit <= 0 ? `${nextRuntime.reboot_count_today || 0} / 不限` : `${nextRuntime.reboot_count_today || 0} / ${limit}`;
   const windowText = rebootWindowText(settings);
   return {

@@ -79,6 +79,7 @@ class FakeStatement {
         check_method: this.args[4],
         enabled: this.args[5],
         visible_on_status: this.args[6],
+        daily_reboot_limit: this.args[7],
         scheduled_reboot: this.args[8],
         http_url: this.args[9],
         tcp_port: this.args[13],
@@ -647,6 +648,32 @@ test('管理后台保存服务器时会写入 visible_on_status', async () => {
 
   assert.equal(res.status, 200);
   assert.equal(testEnv.DB.data.serverWrites[0].visible_on_status, 0);
+});
+
+test('管理后台编辑服务器时不传重启次数上限会保留旧值', async () => {
+  const testEnv = env({
+    servers: [
+      { id: '8564', name: '主服务器', ip: '203.0.113.10', provider: 'heyunidc', enabled: 1, daily_reboot_limit: 7 },
+    ],
+  });
+  const res = await handleRequest(
+    new Request('https://worker.example/api/admin/servers', {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer admin-password',
+        'content-type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify({
+        id: '8564',
+        name: '主服务器',
+        provider: 'heyunidc',
+      }),
+    }),
+    testEnv,
+  );
+
+  assert.equal(res.status, 200);
+  assert.equal(testEnv.DB.data.serverWrites[0].daily_reboot_limit, 7);
 });
 
 test('管理后台删除监控项会删除配置和运行状态并写入日志', async () => {

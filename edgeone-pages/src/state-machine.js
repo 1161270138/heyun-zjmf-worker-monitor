@@ -72,7 +72,7 @@ export function shouldReboot(runtime, server, settings, now, rebootWindow, recen
   if (runtime.state !== STATES.DOWN) return false;
   if (now - runtime.last_reboot_time < settings.reboot_cooldown) return false;
   const count = rebootCount(runtime, rebootWindow, recentRebootCount);
-  const limit = server.daily_reboot_limit || settings.default_daily_reboot_limit;
+  const limit = Number(settings.default_daily_reboot_limit ?? DEFAULT_SETTINGS.default_daily_reboot_limit);
   return limit <= 0 || count < limit;
 }
 
