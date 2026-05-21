@@ -98,6 +98,7 @@ test('Release workflow 会发布中文名步骤1安装脚本附件', () => {
   assert.match(workflow, /ASSET_LABEL: 步骤1-一键安装脚本\.bat/);
   assert.match(workflow, /ASSET_PATH: windows-one-click-deploy\/步骤1-一键安装\.bat/);
   assert.match(workflow, /actions\/github-script@v7/);
+  assert.match(workflow, /createRelease/);
   assert.match(workflow, /uploadReleaseAsset/);
   assert.match(workflow, /deleteReleaseAsset/);
 });
