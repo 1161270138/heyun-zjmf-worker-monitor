@@ -20,6 +20,28 @@ function percent(ok, total) {
   return `${((Number(ok || 0) / count) * 100).toFixed(3)}%`;
 }
 
+function hostIdFor(server) {
+  const explicit = server.host_id || server.product_id;
+  if (explicit) return String(explicit);
+  const id = String(server.id || '');
+  return id.includes(':') ? id.slice(id.indexOf(':') + 1) : id;
+}
+
+function monitorIdFor(server) {
+  const explicit = server.monitor_id || server.key;
+  if (explicit) return String(explicit);
+  const id = String(server.id || '');
+  if (id.includes(':') && !server.host_id && !server.product_id) return id;
+  const hostId = hostIdFor(server);
+  const provider = String(server.provider || '').trim();
+  return provider && hostId ? `${provider}:${hostId}` : hostId || id;
+}
+
+function serverRow(server) {
+  const hostId = hostIdFor(server);
+  return { ...server, monitor_id: String(server.id), host_id: hostId, product_id: hostId, enabled: server.enabled !== false };
+}
+
 function defaultState() {
   return {
     settings: {},
@@ -122,11 +144,11 @@ export class KVRepository {
 
   async listServers() {
     const state = await this.readState();
-    return state.servers.map((server) => ({ ...server, enabled: server.enabled !== false }));
+    return state.servers.map(serverRow);
   }
 
   async getServer(id) {
-    return (await this.listServers()).find((server) => String(server.id) === String(id)) || null;
+    return (await this.listServers()).find((server) => String(server.id) === String(id) || String(server.host_id) === String(id)) || null;
   }
 
   async listProviders() {
@@ -157,8 +179,10 @@ export class KVRepository {
 
   async upsertServer(server, now) {
     await this.updateState((state) => {
-      const next = { ...server, enabled: server.enabled !== false, created_at: server.created_at || now, updated_at: now };
-      const index = state.servers.findIndex((item) => String(item.id) === String(server.id));
+      const monitorId = monitorIdFor(server);
+      const hostId = hostIdFor(server);
+      const next = { ...server, id: monitorId, monitor_id: monitorId, host_id: hostId, product_id: hostId, enabled: server.enabled !== false, created_at: server.created_at || now, updated_at: now };
+      const index = state.servers.findIndex((item) => String(item.id) === monitorId);
       if (index >= 0) state.servers[index] = { ...state.servers[index], ...next };
       else state.servers.push(next);
     });
@@ -200,7 +224,7 @@ export class KVRepository {
 
   async addCheckResult(result) {
     await this.updateState((state) => {
-      state.check_results.push({ id: state.next_check_id++, ...result, ok: Boolean(result.ok) });
+      state.check_results.push({ id: state.next_check_id++, ...result, ok: Boolean(result.ok), metrics: result.metrics || {} });
       state.check_results = state.check_results.slice(-3000);
     });
   }
@@ -220,7 +244,7 @@ export class KVRepository {
       .filter((row) => String(row.server_id) === String(serverId))
       .sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0) || Number(b.id || 0) - Number(a.id || 0))
       .slice(0, limit)
-      .map((row) => ({ ok: Boolean(row.ok), latency_ms: Number(row.latency_ms || 0), created_at: Number(row.created_at || 0) }));
+      .map((row) => ({ ok: Boolean(row.ok), latency_ms: Number(row.latency_ms || 0), metrics: row.metrics || {}, created_at: Number(row.created_at || 0) }));
   }
 
   async countRecentReboots(serverId, since) {
@@ -236,7 +260,7 @@ export class KVRepository {
     return state.servers.filter((server) => server.enabled !== false).map((server) => {
       const runtime = state.runtimes[String(server.id)] || {};
       const last = [...state.check_results].reverse().find((row) => String(row.server_id) === String(server.id)) || {};
-      return { ...server, ...runtime, last_latency_ms: Number(last.latency_ms || 0) };
+      return { ...serverRow(server), ...runtime, last_latency_ms: Number(last.latency_ms || 0), metrics: last.metrics || {} };
     });
   }
 

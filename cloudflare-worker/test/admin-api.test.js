@@ -36,7 +36,7 @@ class FakeStatement {
         })),
       };
     }
-    if (this.sql.includes('SELECT * FROM servers ORDER BY id')) return { results: this.data.servers };
+    if (this.sql.includes('SELECT * FROM servers ORDER BY')) return { results: this.data.servers };
     if (this.sql.includes('FROM servers s')) return { results: this.data.status };
     if (this.sql.includes('ORDER BY created_at DESC, id DESC')) return { results: this.data.recentChecks };
     if (this.sql.includes('FROM check_results')) return { results: this.data.dailyResults };
@@ -53,7 +53,7 @@ class FakeStatement {
       return this.data.providers.find((provider) => provider.name === this.args[0]) || null;
     }
     if (this.sql.includes('SELECT * FROM servers WHERE id')) {
-      return this.data.servers.find((server) => server.id === this.args[0]) || null;
+      return this.data.servers.find((server) => server.id === this.args[0] || server.host_id === this.args[0]) || null;
     }
     throw new Error(`Unexpected SQL: ${this.sql}`);
   }
@@ -73,16 +73,17 @@ class FakeStatement {
     if (this.sql.includes('INSERT INTO servers')) {
       this.data.serverWrites.push({
         id: this.args[0],
-        name: this.args[1],
-        ip: this.args[2],
-        provider: this.args[3],
-        check_method: this.args[4],
-        enabled: this.args[5],
-        visible_on_status: this.args[6],
-        daily_reboot_limit: this.args[7],
-        scheduled_reboot: this.args[8],
-        http_url: this.args[9],
-        tcp_port: this.args[13],
+        host_id: this.args[1],
+        name: this.args[2],
+        ip: this.args[3],
+        provider: this.args[4],
+        check_method: this.args[5],
+        enabled: this.args[6],
+        visible_on_status: this.args[7],
+        daily_reboot_limit: this.args[8],
+        scheduled_reboot: this.args[9],
+        http_url: this.args[10],
+        tcp_port: this.args[14],
       });
       return {};
     }
@@ -329,7 +330,8 @@ test('初始化接口一次保存服务商、服务器、监控参数和通知�
 
   assert.equal(res.status, 200);
   assert.equal(testEnv.DB.data.providerWrites[0].api_account, 'acct');
-  assert.equal(testEnv.DB.data.serverWrites[0].id, '4075');
+  assert.equal(testEnv.DB.data.serverWrites[0].id, 'heyunidc:4075');
+  assert.equal(testEnv.DB.data.serverWrites[0].host_id, '4075');
   assert.equal(testEnv.DB.data.serverWrites[0].check_method, 'service_then_power');
   assert.equal(testEnv.DB.data.settings.check_interval, '120');
   assert.equal(testEnv.DB.data.settings.api_timeout, '15');
@@ -385,9 +387,33 @@ test('初始化接口支持多个账号一次导入多个服务器', async () =>
 
   assert.equal(res.status, 200);
   assert.deepEqual(testEnv.DB.data.providerWrites.map((provider) => provider.name), ['heyunidc_a', 'heyunidc_b']);
-  assert.deepEqual(testEnv.DB.data.serverWrites.map((server) => server.id), ['1001', '1002', '2001']);
+  assert.deepEqual(testEnv.DB.data.serverWrites.map((server) => server.id), ['heyunidc_a:1001', 'heyunidc_a:1002', 'heyunidc_b:2001']);
+  assert.deepEqual(testEnv.DB.data.serverWrites.map((server) => server.host_id), ['1001', '1002', '2001']);
   assert.deepEqual(testEnv.DB.data.serverWrites.map((server) => server.provider), ['heyunidc_a', 'heyunidc_a', 'heyunidc_b']);
   assert.equal(testEnv.DB.data.settings.setup_completed, '1');
+});
+
+test('初始化接口允许不同账号导入相同产品 ID', async () => {
+  const testEnv = env();
+  const res = await handleRequest(new Request('https://worker.example/api/admin/setup', {
+    method: 'POST',
+    headers: { authorization: 'Bearer admin-password', 'content-type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({
+      providers: [
+        { name: 'heyunidc_a', display_name: '核云 A', api_base_url: 'https://api.example/v1', api_account: 'a@example.test', api_password: 'key-a' },
+        { name: 'heyunidc_b', display_name: '核云 B', api_base_url: 'https://api.example/v1', api_account: 'b@example.test', api_password: 'key-b' },
+      ],
+      servers: [
+        { id: '1001', name: 'A-1', provider: 'heyunidc_a' },
+        { id: '1001', name: 'B-1', provider: 'heyunidc_b' },
+      ],
+      settings: { check_interval: 300, api_timeout_ms: 60000 },
+    }),
+  }), testEnv);
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(testEnv.DB.data.serverWrites.map((server) => server.id), ['heyunidc_a:1001', 'heyunidc_b:1001']);
+  assert.deepEqual(testEnv.DB.data.serverWrites.map((server) => server.host_id), ['1001', '1001']);
 });
 
 test('初始化接口缺少必填项时返回具体缺失字段', async () => {

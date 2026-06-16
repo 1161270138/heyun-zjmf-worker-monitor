@@ -37,7 +37,8 @@ test('KVRepository 保存服务商、服务器和设置', async () => {
 
   assert.equal(await repo.getSetting('setup_completed'), '1');
   assert.equal((await repo.listProviders())[0].name, 'heyunidc');
-  assert.equal((await repo.listEnabledServers())[0].id, '1001');
+  assert.equal((await repo.listEnabledServers())[0].id, 'heyunidc:1001');
+  assert.equal((await repo.listEnabledServers())[0].host_id, '1001');
 });
 
 test('KVRepository 生成状态页所需历史和事件', async () => {

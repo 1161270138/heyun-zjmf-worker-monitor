@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ZjmfClient, extractHosts, extractJwt, extractStatus } from '../src/zjmf-client.js';
+import { ZjmfClient, extractHosts, extractJwt, extractMetrics, extractStatus } from '../src/zjmf-client.js';
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -34,6 +34,35 @@ test('extractStatus 兼容常见状态字段', () => {
 test('extractStatus 兼容纯文本 on/off 状态', () => {
   assert.equal(extractStatus('on'), 'on');
   assert.equal(extractStatus(' off '), 'off');
+});
+
+test('extractMetrics 提取流量、到期和硬盘配置项', () => {
+  const metrics = extractMetrics({
+    data: {
+      host: {
+        bwusage: 5120,
+        bwlimit: 10240,
+        nextduedate: 1778382000,
+        os: 'Debian 12',
+        product_name: 'KVM 2C4G',
+        config_option: [
+          { name: '硬盘', value: '80GB SSD' },
+          { name: 'CPU', value: '2 核' },
+          { name: '备注', value: '不展示' },
+        ],
+      },
+    },
+  });
+
+  assert.equal(metrics.traffic.used, 5120);
+  assert.equal(metrics.traffic.limit, 10240);
+  assert.equal(metrics.traffic.percent, 50);
+  assert.equal(metrics.next_due_date, 1778382000);
+  assert.equal(metrics.os, 'Debian 12');
+  assert.deepEqual(metrics.resources, [
+    { label: '硬盘', value: '80GB SSD' },
+    { label: 'CPU', value: '2 核' },
+  ]);
 });
 
 test('login 使用 query string 传账号和密钥', async () => {

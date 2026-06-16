@@ -68,7 +68,16 @@ function isIpAddress(value) {
 }
 
 function displayServerName(server) {
-  return isIpAddress(server.name) || isIpAddress(server.ip) ? `服务器 #${server.id}` : server.name;
+  const hostId = server.host_id || server.product_id || server.id;
+  return isIpAddress(server.name) || isIpAddress(server.ip) ? `服务器 #${hostId}` : server.name;
+}
+
+function monitorId(server) {
+  return String(server.monitor_id || server.id);
+}
+
+function hostId(server) {
+  return String(server.host_id || server.product_id || server.id);
 }
 
 function buildTransitionNotice(server, oldState, nextRuntime, now, label, level, settings) {
@@ -82,7 +91,7 @@ function buildTransitionNotice(server, oldState, nextRuntime, now, label, level,
     title: `【${LEVEL_TEXT[level] || level}】${name} - ${label || STATE_TEXT[nextRuntime.state] || nextRuntime.state}`,
     message: [
       `事件：${label || '状态变更'}`,
-      `监控项：${name} (#${server.id})`,
+      `监控项：${name} (#${hostId(server)})`,
       `严重级别：${LEVEL_TEXT[level] || level}`,
       `状态变化：${stateText}`,
       `检测方式：${method}`,
@@ -117,7 +126,7 @@ async function recordTransition(repo, notifier, server, oldState, nextRuntime, n
 
 async function checkApiHealth(client, server, runtime, now) {
   const started = Date.now();
-  const status = await client.getStatus(server.id, now);
+  const status = await client.getStatus(hostId(server), now);
   const statusValue = status == null ? `ERROR: ${client.lastError || 'N/A'}` : String(status);
   const normalizedStatus = String(status ?? '').trim().toLowerCase();
   const health = status == null || !normalizedStatus ? null : normalizedStatus === 'on';
@@ -127,6 +136,14 @@ async function checkApiHealth(client, server, runtime, now) {
     error: health === null ? client.lastError || 'API 状态获取失败' : '',
     latencyMs: Date.now() - started,
   };
+}
+
+async function collectMetrics(client, server, now) {
+  try {
+    return await client.getHostMetrics(hostId(server), now);
+  } catch {
+    return {};
+  }
 }
 
 function combinedHealth(results) {
@@ -211,16 +228,18 @@ export async function runMonitorOnce({ repo, fetcher = (input, init) => globalTh
     const provider = await repo.getProvider(server.provider);
     if (!provider) continue;
     const client = new ZjmfClient(provider, fetcher, settings.api_timeout);
-    const loadedRuntime = (await repo.getRuntime(server.id)) || createRuntime({ now });
+    const key = monitorId(server);
+    const loadedRuntime = (await repo.getRuntime(key)) || createRuntime({ now });
     const recentRebootCount = typeof repo.countRecentReboots === 'function'
-      ? await repo.countRecentReboots(server.id, rebootWindowStart)
+      ? await repo.countRecentReboots(key, rebootWindowStart)
       : undefined;
     if (!force && loadedRuntime.last_check_time && now - loadedRuntime.last_check_time < settings.check_interval) continue;
     const probe = await probeServer({ client, server, fetcher, tcpConnector, now });
+    const metrics = await collectMetrics(client, server, now);
     const withStatus = { ...loadedRuntime, reboot_count_today: recentRebootCount ?? loadedRuntime.reboot_count_today, last_status_value: probe.statusValue || '', last_check_time: now };
     let nextRuntime = advanceState(withStatus, probe.ok, settings, now);
     if (typeof repo.addCheckResult === 'function') {
-      await repo.addCheckResult({ server_id: server.id, ok: probe.ok, latency_ms: probe.latencyMs || 0, status_value: probe.statusValue || '', error: probe.error || '', created_at: now });
+      await repo.addCheckResult({ server_id: key, ok: probe.ok, latency_ms: probe.latencyMs || 0, status_value: probe.statusValue || '', error: probe.error || '', metrics, created_at: now });
     }
     await recordTransition(repo, notifier, server, loadedRuntime.state, nextRuntime, now);
 
@@ -231,7 +250,7 @@ export async function runMonitorOnce({ repo, fetcher = (input, init) => globalTh
         const startLabel = action === 'power_on' ? '触发开机' : '触发重启';
         const doneLabel = action === 'power_on' ? '开机指令已发送' : '重启指令已发送';
         await recordTransition(repo, notifier, server, nextRuntime.state, rebooting, now, { label: startLabel });
-        const success = action === 'power_on' ? await client.powerOn(server.id, now) : await client.hardReboot(server.id, now);
+        const success = action === 'power_on' ? await client.powerOn(hostId(server), now) : await client.hardReboot(hostId(server), now);
         if (success) {
           const recovering = applyRebootSuccess(rebooting, now, rebootWindow, recentRebootCount);
           await recordTransition(repo, notifier, server, rebooting.state, recovering, now, { label: doneLabel });
@@ -243,7 +262,7 @@ export async function runMonitorOnce({ repo, fetcher = (input, init) => globalTh
     }
 
     await repo.updateProvider(provider);
-    await repo.saveRuntime(server.id, nextRuntime);
+    await repo.saveRuntime(key, nextRuntime);
     checked += 1;
   }
 

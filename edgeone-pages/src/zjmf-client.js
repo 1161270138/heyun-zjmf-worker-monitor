@@ -28,6 +28,17 @@ function textValue(value) {
   return text || null;
 }
 
+function numberValue(value) {
+  if (value == null || value === '') return null;
+  const parsed = Number(String(value).replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function firstObject(value) {
+  if (Array.isArray(value)) return value.find((item) => item && typeof item === 'object') || null;
+  return value && typeof value === 'object' ? value : null;
+}
+
 export function extractStatus(data) {
   if (typeof data === 'string') return textValue(data);
   const raw = data?.data;
@@ -35,6 +46,52 @@ export function extractStatus(data) {
     return textValue(raw.status ?? raw.state ?? raw.power_status ?? raw.power_state);
   }
   return textValue(data?.status ?? data?.state);
+}
+
+export function extractHostDetail(data) {
+  const raw = data?.data ?? data;
+  if (!raw || typeof raw !== 'object') return null;
+  return firstObject(raw.host) || firstObject(raw.hosts) || firstObject(raw.product) || firstObject(raw);
+}
+
+function metricItemsFrom(list) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const label = textValue(item.name ?? item.label ?? item.title ?? item.key);
+      const value = textValue(item.value ?? item.val ?? item.content);
+      if (!label || !value) return null;
+      if (!/(硬盘|磁盘|容量|disk|ssd|hdd|cpu|核心|内存|memory|ram|带宽|防御)/i.test(`${label} ${value}`)) return null;
+      return { label, value };
+    })
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
+export function extractMetrics(data) {
+  const host = extractHostDetail(data);
+  if (!host) return {};
+  const bwUsed = numberValue(host.bwusage ?? host.bw_usage ?? host.traffic_used ?? host.used_traffic);
+  const bwLimit = numberValue(host.bwlimit ?? host.bw_limit ?? host.traffic_limit ?? host.total_traffic);
+  const traffic = bwUsed == null && bwLimit == null ? null : {
+    used: bwUsed,
+    limit: bwLimit,
+    percent: bwUsed != null && bwLimit ? Math.max(0, Math.min(100, (bwUsed / bwLimit) * 100)) : null,
+  };
+  return {
+    traffic,
+    os: textValue(host.os ?? host.system ?? host.image),
+    product_name: textValue(host.product_name ?? host.product),
+    domain_status: textValue(host.domainstatus ?? host.domain_status),
+    billing_cycle: textValue(host.billingcycle ?? host.billing_cycle),
+    next_due_date: numberValue(host.nextduedate ?? host.next_due_date),
+    port: numberValue(host.port),
+    resources: [
+      ...metricItemsFrom(host.config_option),
+      ...metricItemsFrom(host.custom_field),
+    ].slice(0, 8),
+  };
 }
 
 function withTimeout(timeoutSeconds) {
@@ -136,6 +193,13 @@ export class ZjmfClient {
     const response = await this.request('GET', url, now);
     if (!response?.ok) return null;
     return extractStatus(await readPayload(response));
+  }
+
+  async getHostMetrics(hostId, now) {
+    const url = new URL(`${this.provider.api_base_url}/hosts/${hostId}`);
+    const response = await this.request('GET', url, now);
+    if (!response?.ok) return {};
+    return extractMetrics(await readJson(response));
   }
 
   async hardReboot(hostId, now) {

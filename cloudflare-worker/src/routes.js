@@ -57,11 +57,12 @@ function isIpAddress(value) {
 }
 
 function serverDisplayName(server) {
-  return isIpAddress(server.name) || isIpAddress(server.ip) ? `服务器 #${server.id}` : server.name;
+  const hostId = server.host_id || server.product_id || server.id;
+  return isIpAddress(server.name) || isIpAddress(server.ip) ? `服务器 #${hostId}` : server.name;
 }
 
 function publicServer(server) {
-  const { ip: _ip, http_url: _httpUrl, tcp_host: _tcpHost, visible_on_status: _visible, ...rest } = server;
+  const { ip: _ip, http_url: _httpUrl, tcp_host: _tcpHost, visible_on_status: _visible, metrics_json: _metricsJson, ...rest } = server;
   return { ...rest, name: serverDisplayName(server) };
 }
 
@@ -76,9 +77,9 @@ function publicEvent(event) {
 }
 
 function adminServers(servers, status) {
-  const activeIds = new Set(status.map((server) => String(server.id)));
+  const activeIds = new Set(status.map((server) => String(server.monitor_id || server.id)));
   return servers.map(adminServer).sort((a, b) => {
-    const activeDiff = Number(activeIds.has(String(b.id))) - Number(activeIds.has(String(a.id)));
+    const activeDiff = Number(activeIds.has(String(b.monitor_id || b.id))) - Number(activeIds.has(String(a.monitor_id || a.id)));
     if (activeDiff) return activeDiff;
     const enabledDiff = Number(b.enabled) - Number(a.enabled);
     return enabledDiff || String(a.id).localeCompare(String(b.id), 'zh-CN', { numeric: true });
@@ -191,18 +192,19 @@ function adminHost(host) {
 
 async function publicStatus(repo) {
   const servers = (await repo.listStatus()).filter(visibleOnStatus).map(publicServer);
-  const ids = servers.map((server) => String(server.id));
+  const ids = servers.map((server) => String(server.monitor_id || server.id));
   const daily = await repo.listDailyHistory(ids);
   const events = await repo.listPublicEvents(ids);
   const recent = new Map();
   for (const server of servers) {
-    recent.set(String(server.id), await repo.listRecentChecks(server.id));
+    const key = String(server.monitor_id || server.id);
+    recent.set(key, await repo.listRecentChecks(key));
   }
   return servers.map((server) => ({
     ...server,
-    daily_history: daily.get(String(server.id)) || [],
-    events: (events.get(String(server.id)) || []).map(publicEvent),
-    recent_checks: recent.get(String(server.id)) || [],
+    daily_history: daily.get(String(server.monitor_id || server.id)) || [],
+    events: (events.get(String(server.monitor_id || server.id)) || []).map(publicEvent),
+    recent_checks: recent.get(String(server.monitor_id || server.id)) || [],
   }));
 }
 
@@ -441,7 +443,7 @@ export async function handleRequest(request, env) {
   if (url.pathname === '/api/admin/servers' && request.method === 'POST') {
     const body = await readJson(request);
     if (!body?.id || !body?.name) return json({ error: 'INVALID_SERVER' }, 400);
-    const existing = await repo.getServer(body.id);
+    const existing = await repo.getServer(body.monitor_id || body.id);
     const providers = await repo.listProviders();
     const providerName = String(body?.provider || '').trim();
     const provider = providers.some((item) => item.name === providerName)
@@ -473,9 +475,9 @@ export async function handleRequest(request, env) {
     const existing = id ? await repo.getServer(id) : null;
     if (!existing) return json({ error: 'SERVER_NOT_FOUND' }, 404);
     const now = Math.floor(Date.now() / 1000);
-    await repo.deleteServer(id);
+    await repo.deleteServer(existing.monitor_id || existing.id);
     await repo.addEvent({
-      server_id: id,
+      server_id: existing.monitor_id || existing.id,
       old_state: 'configured',
       new_state: 'deleted',
       label: '删除监控项',
