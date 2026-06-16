@@ -135,6 +135,10 @@ test('管理后台页面使用 ZJMF_ADMIN_TOKEN 登录且不嵌入真实密码',
   assert.match(html, /overflow-y:auto/);
   assert.match(html, /#serverForm \.checkCard/);
   assert.match(html, /padding:12px 14px/);
+  assert.match(html, /id="newProviderBtn"/);
+  assert.match(html, /id="providerRows"/);
+  assert.match(html, /function renderProviders/);
+  assert.match(html, /id="serverProviderSelect"/);
   assert.match(html, /保存服务商/);
   assert.match(html, /保存服务器/);
   assert.match(html, /id="toast"/);
