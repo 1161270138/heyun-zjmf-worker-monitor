@@ -222,6 +222,20 @@ async function probeServer({ client, server, fetcher, tcpConnector, now }) {
   return await checkApiHealth(client, server, {}, now);
 }
 
+async function mapWithConcurrency(items, limit, worker) {
+  const results = [];
+  let index = 0;
+  const workerCount = Math.min(Math.max(1, limit), items.length);
+  await Promise.all(Array.from({ length: workerCount }, async () => {
+    while (index < items.length) {
+      const current = items[index];
+      index += 1;
+      results.push(await worker(current));
+    }
+  }));
+  return results;
+}
+
 export async function runMonitorOnce({ repo, fetcher = (input, init) => globalThis.fetch(input, init), tcpConnector, now, date = new Date(now * 1000), force = false }) {
   const settings = await repo.getSettings();
   const notifier = new Notifier(settings, fetcher);
@@ -229,18 +243,17 @@ export async function runMonitorOnce({ repo, fetcher = (input, init) => globalTh
   const rebootWindow = rebootWindowKey(date, settings.timezone || 'Asia/Shanghai', limitWindow);
   const rebootWindowStart = now - (limitWindow === 'day' ? 24 * 60 * 60 : 60 * 60);
   const servers = await repo.listEnabledServers();
-  let checked = 0;
 
-  for (const server of servers) {
+  const results = await mapWithConcurrency(servers, Number(settings.monitor_concurrency || 5), async (server) => {
     const provider = await repo.getProvider(server.provider);
-    if (!provider) continue;
+    if (!provider) return 0;
     const client = new ZjmfClient(provider, fetcher, settings.api_timeout);
     const key = monitorId(server);
     const loadedRuntime = (await repo.getRuntime(key)) || createRuntime({ now });
     const recentRebootCount = typeof repo.countRecentReboots === 'function'
       ? await repo.countRecentReboots(key, rebootWindowStart)
       : undefined;
-    if (!force && loadedRuntime.last_check_time && now - loadedRuntime.last_check_time < settings.check_interval) continue;
+    if (!force && loadedRuntime.last_check_time && now - loadedRuntime.last_check_time < settings.check_interval) return 0;
     const probe = await probeServer({ client, server, fetcher, tcpConnector, now });
     const metrics = await collectMetrics(client, server, now);
     const withStatus = { ...loadedRuntime, reboot_count_today: recentRebootCount ?? loadedRuntime.reboot_count_today, last_status_value: probe.statusValue || '', last_check_time: now };
@@ -270,12 +283,12 @@ export async function runMonitorOnce({ repo, fetcher = (input, init) => globalTh
 
     await repo.updateProvider(provider);
     await repo.saveRuntime(key, nextRuntime);
-    checked += 1;
-  }
+    return 1;
+  });
 
   if (typeof repo.pruneCheckResults === 'function') {
     await repo.pruneCheckResults(settings.data_retention_days, now);
   }
 
-  return { checked };
+  return { checked: results.reduce((sum, value) => sum + value, 0) };
 }
