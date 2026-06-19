@@ -29,6 +29,9 @@ jobs:
       ZJMF_SERVER_NAME: ${{ secrets.ZJMF_SERVER_NAME }}
       PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
       WEB_UPDATE_GITHUB_TOKEN: ${{ secrets.WEB_UPDATE_GITHUB_TOKEN }}
+      HEYUN_OVERRIDE_ZONE: ${{ vars.HEYUN_OVERRIDE_ZONE || 'webf.top' }}
+      HEYUN_ORIGIN_HOST: ${{ vars.HEYUN_ORIGIN_HOST || 'heyun-origin.jk.webf.top' }}
+      HEYUN_ORIGIN_IP: ${{ vars.HEYUN_ORIGIN_IP || '110.42.66.33' }}
 
     steps:
       - name: Checkout
@@ -47,6 +50,9 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Ensure Heyun API DNS override
+        run: node scripts/ensure-heyun-dns.mjs
 
       - name: Create or reuse D1 database
         id: d1

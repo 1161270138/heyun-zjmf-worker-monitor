@@ -100,6 +100,13 @@ function withTimeout(timeoutSeconds) {
   return { signal: controller.signal, clear: () => clearTimeout(timer) };
 }
 
+function resolveOverrideFor(provider, url) {
+  if (provider.api_resolve_override) return String(provider.api_resolve_override).trim();
+  const hostname = String(url?.hostname || '').toLowerCase();
+  if (hostname === 'www.heyunidc.cn') return 'heyun-origin.jk.webf.top';
+  return '';
+}
+
 async function readJson(response) {
   try {
     return await response.json();
@@ -151,7 +158,9 @@ export class ZjmfClient {
     const timeout = withTimeout(this.apiTimeout);
     try {
       this.lastError = '';
-      return await this.fetcher(url, { ...init, signal: timeout.signal });
+      const override = resolveOverrideFor(this.provider, url);
+      const cf = override ? { ...(init.cf || {}), resolveOverride: override } : init.cf;
+      return await this.fetcher(url, { ...init, cf, signal: timeout.signal });
     } catch (error) {
       this.lastError = error instanceof Error ? error.message : String(error);
       return null;

@@ -95,6 +95,21 @@ test('getStatus 带 JWT 访问状态接口并抽取状态', async () => {
   assert.equal(calls[1].init.headers.Authorization, 'JWT token-2');
 });
 
+test('核云 API 请求默认使用同区解析覆盖避开 522 链路', async () => {
+  const calls = [];
+  const fetcher = async (url, init) => {
+    calls.push({ url: String(url), init });
+    if (String(url).includes('login_api')) return jsonResponse({ jwt: 'token-override' });
+    return jsonResponse({ data: { status: 'off' } });
+  };
+  const provider = { api_base_url: 'https://www.heyunidc.cn/v1', api_account: 'acct', api_password: 'key' };
+
+  const client = new ZjmfClient(provider, fetcher, 60);
+  assert.equal(await client.getStatus('4075', 1000), 'off');
+  assert.equal(calls[0].init.cf.resolveOverride, 'heyun-origin.jk.webf.top');
+  assert.equal(calls[1].init.cf.resolveOverride, 'heyun-origin.jk.webf.top');
+});
+
 test('hardReboot 对 401 自动重新登录后重试一次', async () => {
   const calls = [];
   const fetcher = async (url, init) => {
