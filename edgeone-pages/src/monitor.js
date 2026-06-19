@@ -160,6 +160,10 @@ function apiRecoveryAction(api) {
   return 'reboot';
 }
 
+function apiReportsPoweredOff(api) {
+  return String(api.statusValue || '').trim().toLowerCase() === 'off';
+}
+
 function combinedProbe(results, overrides = {}) {
   const hasOkOverride = Object.prototype.hasOwnProperty.call(overrides, 'ok');
   const hasErrorOverride = Object.prototype.hasOwnProperty.call(overrides, 'error');
@@ -184,6 +188,9 @@ async function checkServiceThenPower({ client, server, fetcher, tcpConnector, no
   const tcp = await checkTcpHealth({ server, connector: tcpConnector });
   const api = await checkApiHealth(client, server, {}, now);
   const serviceOk = http.ok || tcp.ok;
+  if (apiReportsPoweredOff(api)) {
+    return combinedProbe([http, tcp, api], { ok: false, error: '', recoveryAction: 'power_on' });
+  }
   if (serviceOk) {
     return combinedProbe([http, tcp, api], { ok: true, error: '', recoveryAction: '' });
   }

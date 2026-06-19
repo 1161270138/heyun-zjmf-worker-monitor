@@ -354,6 +354,29 @@ test('runMonitorOnce 三步检测确认关机后执行开机而不是重启', as
   assert.equal(calls.some((url) => url.includes('/hard_reboot')), false);
 });
 
+test('runMonitorOnce 三步检测在 HTTP 正常但 API 为 off 时执行开机', async () => {
+  const repo = new FakeRepo({
+    settings: { suspect_threshold: 3, reboot_cooldown: 300, recover_timeout: 300, default_daily_reboot_limit: 3, api_timeout: 60, timezone: 'Asia/Shanghai', check_interval: 300 },
+    providers: { heyun: { name: 'heyun', api_base_url: 'https://api.example/v1', jwt_token: 'jwt', jwt_expire_at: 9999999999 } },
+    servers: [{ id: '4075', name: '综合', provider: 'heyun', check_method: 'service_then_power', http_url: 'https://web.example/health', tcp_host: 'tcp.example', tcp_port: 443, daily_reboot_limit: 3 }],
+    runtimes: { 4075: { state: 'suspect', consecutive_failures: 2, consecutive_successes: 0, last_check_time: 0, last_reboot_time: 1000, reboot_count_today: 0, reboot_date: '', last_status_value: '', state_changed_at: 1000, first_failure_at: 1000, reboot_initiated_at: 0, scheduled_reboot_date: '' } },
+  });
+  const calls = [];
+  const fetcher = async (url) => {
+    calls.push(String(url));
+    if (String(url).includes('web.example')) return new Response('ok', { status: 200 });
+    if (String(url).includes('/module/status')) return new Response(JSON.stringify({ data: { status: 'off' } }));
+    if (String(url).includes('/module/on')) return new Response(JSON.stringify({ msg: '成功' }));
+    return new Response(JSON.stringify({ jwt: 'jwt' }));
+  };
+
+  await runMonitorOnce({ repo, fetcher, tcpConnector: async () => false, now: 1778382000 });
+
+  assert.equal(calls.some((url) => url.includes('/module/on')), true);
+  assert.equal(calls.some((url) => url.includes('/hard_reboot')), false);
+  assert.equal(repo.data.runtimes['4075'].state, 'recovering');
+});
+
 test('runMonitorOnce 三步检测在 HTTP TCP 失败但 API 为 on 时判定正常', async () => {
   const repo = new FakeRepo({
     settings: { suspect_threshold: 3, reboot_cooldown: 300, recover_timeout: 300, default_daily_reboot_limit: 3, api_timeout: 60, timezone: 'Asia/Shanghai', check_interval: 300 },
