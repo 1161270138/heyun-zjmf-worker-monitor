@@ -191,7 +191,10 @@ export class ZjmfClient {
     const url = new URL(`${this.provider.api_base_url}/hosts/${hostId}/module/status`);
     url.searchParams.set('type', 'host');
     const response = await this.request('GET', url, now);
-    if (!response?.ok) return null;
+    if (!response?.ok) {
+      if (!this.lastError) this.lastError = response ? `HTTP ${response.status}` : 'request failed';
+      return null;
+    }
     return extractStatus(await readPayload(response));
   }
 

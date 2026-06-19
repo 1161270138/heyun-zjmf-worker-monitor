@@ -56,6 +56,7 @@ test('状态页渲染服务器状态并转义 HTML', () => {
   assert.doesNotMatch(html, /旧事件/);
   assert.match(html, /data-tip=/);
   assert.match(html, /aria-label="最近探测详情"/);
+  assert.match(html, /最近结果：on/);
   assert.match(html, /tcp/);
   assert.match(html, /管理面板/);
   assert.match(html, /href="\/admin"/);

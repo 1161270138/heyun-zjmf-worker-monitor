@@ -191,11 +191,11 @@ async function checkServiceThenPower({ client, server, fetcher, tcpConnector, no
   if (apiReportsPoweredOff(api)) {
     return combinedProbe([http, tcp, api], { ok: false, error: '', recoveryAction: 'power_on' });
   }
+  if (api.ok === null) {
+    return combinedProbe([http, tcp, api], { ok: false, recoveryAction: 'none' });
+  }
   if (serviceOk) {
     return combinedProbe([http, tcp, api], { ok: true, error: '', recoveryAction: '' });
-  }
-  if (api.ok === null) {
-    return combinedProbe([http, tcp, api], { ok: null, recoveryAction: 'none' });
   }
   return combinedProbe([http, tcp, api], { ok: api.ok, error: '', recoveryAction: apiRecoveryAction(api) });
 }

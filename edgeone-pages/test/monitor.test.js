@@ -117,6 +117,31 @@ test('EdgeOne 三步检测在 HTTP 正常但 API 为 off 时执行开机', async
   assert.equal(repo.data.runtimes['4075'].state, 'recovering');
 });
 
+test('EdgeOne 三步检测在 TCP 正常但 API 失败时判定异常且不误发命令', async () => {
+  const repo = new FakeRepo({
+    settings,
+    providers: { heyun: { name: 'heyun', api_base_url: 'https://api.example/v1', jwt_token: 'jwt', jwt_expire_at: 9999999999 } },
+    servers: [{ id: '4075', name: '三步', provider: 'heyun', check_method: 'service_then_power', http_url: 'https://web.example/health', tcp_host: 'tcp.example', tcp_port: 996, daily_reboot_limit: 3 }],
+    runtimes: { 4075: suspectRuntime() },
+  });
+  const calls = [];
+  const fetcher = async (url) => {
+    calls.push(String(url));
+    if (String(url).includes('web.example')) return new Response('forbidden', { status: 403 });
+    if (String(url).includes('/module/status')) return new Response('timeout', { status: 522 });
+    if (String(url).includes('/module/on')) return new Response(JSON.stringify({ msg: '成功' }));
+    if (String(url).includes('/hard_reboot')) return new Response(JSON.stringify({ msg: '成功' }));
+    return new Response(JSON.stringify({ jwt: 'jwt' }));
+  };
+
+  await runMonitorOnce({ repo, fetcher, tcpConnector: async () => true, now: 1778382000 });
+
+  assert.equal(repo.data.runtimes['4075'].state, 'down');
+  assert.equal(repo.data.runtimes['4075'].last_status_value, 'HTTP 403 -> TCP 996 open -> ERROR: HTTP 522');
+  assert.equal(calls.some((url) => url.includes('/module/on')), false);
+  assert.equal(calls.some((url) => url.includes('/hard_reboot')), false);
+});
+
 test('EdgeOne API 请求失败时返回 null 且不推进异常计数', async () => {
   const repo = new FakeRepo({
     settings,
